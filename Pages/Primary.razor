@@ -1,0 +1,122 @@
+﻿@page "/primary"
+@using System.Collections.Generic
+@inject NavigationManager Nav
+
+<div class="container my-5" dir="rtl">
+    <div class="card shadow p-4" style="max-width: 600px; margin:auto; border-radius: 12px;">
+        <h3 class="text-center mb-4 text-primary fw-bold">تعبئة بيانات قيد الدعوى</h3>
+
+        <EditForm Model="@caseForm">
+            <!-- اختيار المحافظة -->
+            <div class="mb-3">
+                <label class="form-label fw-bold">
+                    المحافظة <span style="color:red;">*</span>
+                </label>
+                <select class="form-select" @onchange="GovernorateChanged">
+                    <option value="">-- اختر المحافظة --</option>
+                    @foreach (var gov in governorates.Keys)
+                    {
+                        <option @key="gov" value="@gov">@gov</option>
+                    }
+                </select>
+                @if (showErrors && string.IsNullOrEmpty(caseForm.Governorate))
+                {
+                    <div class="text-danger mt-1">الرجاء اختيار المحافظة</div>
+                }
+            </div>
+
+            <!-- اختيار المحكمة -->
+            <div class="mb-3">
+                <label class="form-label fw-bold">
+                    المحكمة <span style="color:red;">*</span>
+                </label>
+                <select class="form-select" @bind="caseForm.Court" disabled="@(!availableCourts.Any())">
+                    <option value="">-- اختر المحكمة --</option>
+                    @foreach (var court in availableCourts)
+                    {
+                        <option @key="court" value="@court">@court</option>
+                    }
+                </select>
+                @if (showErrors && string.IsNullOrEmpty(caseForm.Court))
+                {
+                    <div class="text-danger mt-1">الرجاء اختيار المحكمة</div>
+                }
+            </div>
+
+            <!-- زر التأكيد -->
+            @* <div class="text-center mt-4">
+                <button type="button" class="btn btn-primary px-4" @onclick="ValidateForm">تأكيد البيانات</button>
+            </div> *@
+            <!-- الأزرار -->
+            <div class="d-flex justify-content-between mt-4">
+                <button type="button" class="btn btn-secondary" @onclick="GoBack">السابق</button>
+                <button type="button" class="btn btn-primary" @onclick="ValidateForm">التالي</button>
+            </div>
+        </EditForm>
+
+        @if (submitted)
+        {
+            <div class="alert alert-success mt-4 text-center">
+                ✅ تم حفظ بياناتك بنجاح!
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private CaseForm caseForm = new();
+    private bool submitted = false;
+    private bool showErrors = false;
+
+    private Dictionary<string, List<string>> governorates = new()
+    {
+        { "مسقط", new List<string> { "المحكمة الابتدائية بمسقط", "المحكمة الابتدائية بالسيب", "المحكمة الابتدائية بالعامرات","المحكمة الابتدائية ببدبد","المحكمة الابتدائية بقريات" } },
+        { "الداخلية", new List<string> { "المحكمة الابتدائية بأدم", "المحكمة الابتدائية بسمائل", "المحكمة الابتدائية ببهلاء","المحكمة الابتدائية بنزوى","المحكمة الابتدائية بازكي" } },
+        { "البريمي", new List<string> { "المحكمة الابتدائية بالبريمي", "المحكمة الابتدائية بمحضه" } },
+        { "ظفار", new List<string> { "المحكمة الابتدائية بصلالة", "المحكمة الابتدائية بثمريت" } }
+    };
+
+    private List<string> availableCourts = new();
+
+    private void GovernorateChanged(ChangeEventArgs e)
+    {
+        caseForm.Governorate = e.Value?.ToString();
+        availableCourts.Clear();
+        caseForm.Court = null;
+
+        if (!string.IsNullOrEmpty(caseForm.Governorate) && governorates.TryGetValue(caseForm.Governorate, out var courts))
+        {
+            availableCourts = courts.ToList();
+        }
+    }
+    private void GoBack()
+    {
+        Nav.NavigateTo("/");
+    }
+    private void ValidateForm()
+    {
+        showErrors = true;
+
+        if (CanSubmit)
+        {
+            HandleSubmit();
+        }
+    }
+
+    private void HandleSubmit()
+    {
+        submitted = true;
+        showErrors = false;
+
+        Nav.NavigateTo("/primary2");
+    }
+    private bool CanSubmit =>
+        !string.IsNullOrEmpty(caseForm.Governorate) &&
+        !string.IsNullOrEmpty(caseForm.Court);
+
+    public class CaseForm
+    {
+        public string? Governorate { get; set; }
+        public string? Court { get; set; }
+    }
+}

@@ -1,0 +1,32 @@
+﻿@page "/lawsuit"
+@inject NavigationManager Navigation
+
+<div class="case-container">
+    <h2 class="title">قيد الدعاوي</h2>
+
+    <div class="tab-grid">
+
+        <div class="tab-item" @onclick="@(() => NavigateToPage("/Initial"))">
+            <img src="images/gavel-icon.png" alt="ابتدائي" class="icon" />
+            <p>ابتدائي</p>
+        </div>
+
+        <div class="tab-item" @onclick="@(() => NavigateToPage("/Appeal"))">
+            <img src="images/scales-icon.png" alt="استئناف" class="icon" />
+            <p>استئناف</p>
+        </div>
+
+        <div class="tab-item" @onclick="@(() => NavigateToPage("/Supreme"))">
+            <img src="images/lawbook-icon.svg" alt="العليا" class="icon" />
+            <p>العليا</p>
+        </div>
+
+    </div>
+</div>
+
+@code {
+    void NavigateToPage(string url)
+    {
+        Navigation.NavigateTo(url);
+    }
+}

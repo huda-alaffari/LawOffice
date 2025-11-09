@@ -1,0 +1,55 @@
+﻿@page "/team"
+
+<div class="container my-5" dir="rtl" style="font-family: 'Cairo', sans-serif;">
+    <div class="p-5 rounded-4 shadow"
+         style="background-color:#f5f0e8; border:1px solid #d9c7aa; max-width: 900px; margin:auto;">
+
+        <!-- العنوان الرئيسي -->
+        <h2 class="text-center mb-4" style="color:#4b2e0f; font-weight:700;">
+            العاملون في المكتب
+        </h2>
+
+        <!-- النص التعريفي -->
+        <p class="text-center mb-5" style="color:#2f1d0c; font-size:1.05rem;">
+            فريقنا المحترف لضمان تقديم أفضل الخدمات القانونية لموكلينا.
+        </p>
+
+        <!-- قائمة الموظفين -->
+        <div class="row g-4">
+            @foreach (var member in teamMembers)
+            {
+                <div class="col-md-6">
+                    <div class="p-3 border rounded-3 h-100"
+                         style="background-color:#fffaf3; border-color:#d8b98b;">
+                        <h6 class="fw-bold mb-1" style="color:#4b2e0f;">@member.Name</h6>
+                        <p class="mb-0" style="color:#3b2b1a;">@member.Position (@member.Nationality)</p>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    public class TeamMember
+    {
+        public string Name { get; set; } = "";
+        public string Position { get; set; } = "";
+        public string Nationality { get; set; } = "";
+    }
+
+    private List<TeamMember> teamMembers = new List<TeamMember>
+    {
+        new TeamMember { Name="سليمان بن علي الرواحي", Position="محامي عليا", Nationality="عماني الجنسية" },
+        new TeamMember { Name="حنين يوسف الدفاعية", Position="محامي ابتدائي", Nationality="عمانية الجنسية" },
+        new TeamMember { Name="أحمد الهشامي", Position="محامي استئناف", Nationality="عماني الجنسية" },
+        new TeamMember { Name="فاتك سيف العامري", Position="محامي ابتدائي", Nationality="عماني الجنسية" },
+        new TeamMember { Name="حسام صالح الريسي", Position="محامي ابتدائي", Nationality=" عماني الجنسية" },
+        new TeamMember { Name="فيصل يحيى ارباب", Position="مستشار قانوني", Nationality="سوداني الجنسية" },
+        new TeamMember { Name="عاطف عبدالله", Position="مستشار قانوني", Nationality="سوداني الجنسية" },
+        new TeamMember { Name="محي الدين كوتي", Position="مستشار قانوني", Nationality="هندي الجنسية" },
+        new TeamMember { Name="أحلام سعيد الهادية", Position="مدير إداري", Nationality="عمانية الجنسية" },
+        new TeamMember { Name="يونس سالم الحارثي", Position="مدير إداري", Nationality="عماني الجنسية" },
+        new TeamMember { Name="منى سيف الرواحية", Position="إداري", Nationality="عمانية الجنسية" },
+    };
+}

@@ -1,0 +1,204 @@
+﻿@page "/Permissions"
+@using LowOffice.Data
+@using Microsoft.Data.SqlClient
+@inject NavigationManager Nav
+
+<div class="container my-5" dir="rtl" style="font-family: Cairo, sans-serif;">
+    <div class="row">
+        <!-- القسم الأيسر: قائمة الموظفين -->
+        <div class="col-md-4">
+            <div class="p-3 rounded-3 shadow" style="background-color:#fffaf3; border:1px solid #d8b98b;">
+                <h5 class="fw-bold text-center mb-3" style="color:#4b2e0f;">قائمة الموظفين</h5>
+                <ul class="list-group">
+                    @foreach (var emp in Employees)
+                    {
+                        <li class="list-group-item"
+                            style=@($"cursor:pointer; background-color:{(SelectedEmployee == emp ? "#f5f0e8" : "white")}")
+                            @onclick="() => SelectEmployee(emp)">
+                            @emp.Name
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+
+        <!-- القسم الأيمن: الصلاحيات -->
+        <div class="col-md-8">
+            <div class="p-4 rounded-3 shadow" style="background-color:#f5f0e8; border:1px solid #d9c7aa;">
+                @if (SelectedEmployee is not null)
+                {
+                    <h5 class="fw-bold mb-4" style="color:#4b2e0f;">صلاحيات الموظف: @SelectedEmployee.Name</h5>
+
+                    <div class="row">
+                        @foreach (var page in AllPages)
+                        {
+                            <div class="col-md-6 mb-3">
+                                <input type="checkbox"
+                                       id="@(page)"
+                                       checked="@(SelectedEmployee.Permissions.Contains(page))"
+                                       @onchange="@( (ChangeEventArgs e) => TogglePermission(page, e) )" />
+                                <label for="@(page)" class="ms-2">@(page)</label>
+                            </div>
+                        }
+                    </div>
+
+                    <button class="btn btn-dark mt-4" @onclick="SavePermissions">💾 حفظ الصلاحيات</button>
+                }
+                else
+                {
+                    <p class="text-center text-muted mt-5">اختر موظفًا من القائمة لعرض صلاحياته</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    public class Employee
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = "";
+        public List<string> Permissions { get; set; } = new();
+    }
+
+    // نستبدل user_login بـ Employees
+    private List<Employee> Employees = new();
+
+    private List<string> AllPages = new()
+    {
+        "الصفحة الرئيسية",
+        "عن المكتب",
+        "خدماتنا",
+        "فريقنا",
+        "تواصل معنا",
+        "خدمات الدعاوى",
+        "قيد الدعوى",
+        "المحكمة الابتدائية",
+        "المحكمة العليا",
+        "محكمة الاستئناف",
+        "القضايا",
+        "لوحة التحكم",
+        "الصلاحيات"
+    };
+
+    private Employee? SelectedEmployee;
+
+    protected override void OnInitialized()
+    {
+        LoadEmployeesFromDB();
+    }
+
+    void LoadEmployeesFromDB()
+    {
+        string connString = "Data Source=LAPTOP-9VFHMEKR\\SQLEXPRESS;Initial Catalog=CaseSystemManagement;Integrated Security=True;TrustServerCertificate=True;";
+
+        using var con = new SqlConnection(connString);
+        con.Open();
+
+        using var cmd = new SqlCommand("SELECT Id, Name FROM user_login", con);
+        using var reader = cmd.ExecuteReader();
+
+        while (reader.Read())
+        {
+            Employees.Add(new Employee()
+            {
+                Id = reader.GetInt32(0),
+                Name = reader.GetString(1)
+            });
+        }
+    }
+
+
+    void SelectEmployee(Employee emp)
+    {
+        SelectedEmployee = emp;
+
+        LoadEmployeePermissions();
+    }
+
+    void LoadEmployeePermissions()
+    {
+        if (SelectedEmployee == null) return;
+
+        string connString = "Data Source=LAPTOP-9VFHMEKR\\SQLEXPRESS;Initial Catalog=CaseSystemManagement;Integrated Security=True;TrustServerCertificate=True;";
+
+        using var con = new SqlConnection(connString);
+        con.Open();
+
+        var cmd = new SqlCommand(@"
+        SELECT PermissionName
+        FROM EmployeePermissions ep
+        JOIN Permissions p ON ep.PermissionId = p.Id
+        WHERE ep.EmployeeId=@id
+        ", con);
+
+        cmd.Parameters.AddWithValue("@id", SelectedEmployee.Id);
+
+        SelectedEmployee.Permissions.Clear();
+
+        using var r = cmd.ExecuteReader();
+        while (r.Read())
+        {
+            SelectedEmployee.Permissions.Add(r.GetString(0));
+        }
+
+        StateHasChanged();
+    }
+
+
+    void TogglePermission(string page, ChangeEventArgs args)
+    {
+        if (SelectedEmployee is null) return;
+
+        bool isChecked = args?.Value is bool b && b;
+        if (isChecked && !SelectedEmployee.Permissions.Contains(page))
+            SelectedEmployee.Permissions.Add(page);
+        else if (!isChecked)
+            SelectedEmployee.Permissions.Remove(page);
+    }
+
+    void SavePermissions()
+    {
+        if (SelectedEmployee == null || SelectedEmployee.Permissions == null) return;
+
+        string connString = "Data Source=LAPTOP-9VFHMEKR\\SQLEXPRESS;Initial Catalog=CaseSystemManagement;Integrated Security=True;TrustServerCertificate=True;";
+
+        using var con = new SqlConnection(connString);
+        con.Open();
+
+        using var trans = con.BeginTransaction();
+
+        // delete old permissions
+        var delCmd = new SqlCommand("DELETE FROM EmployeePermissions WHERE EmployeeId=@id", con, trans);
+        delCmd.Parameters.AddWithValue("@id", SelectedEmployee.Id);
+        delCmd.ExecuteNonQuery();
+
+        // insert new permissions
+        foreach (var p in SelectedEmployee.Permissions)
+        {
+            var permCmd = new SqlCommand(@"
+            DECLARE @pid INT;
+            SELECT @pid = Id FROM Permissions WHERE PermissionName=@p;
+            IF @pid IS NULL
+            BEGIN
+                INSERT INTO Permissions(PermissionName) VALUES(@p);
+                SET @pid = SCOPE_IDENTITY();
+            END
+            SELECT @pid;
+        ", con, trans);
+
+            permCmd.Parameters.AddWithValue("@p", p);
+            var permId = permCmd.ExecuteScalar();
+
+            var insertCmd = new SqlCommand("INSERT INTO EmployeePermissions(EmployeeId,PermissionId) VALUES(@emp,@pid)", con, trans);
+            insertCmd.Parameters.AddWithValue("@emp", SelectedEmployee.Id);
+            insertCmd.Parameters.AddWithValue("@pid", permId);
+            insertCmd.ExecuteNonQuery();
+        }
+
+        trans.Commit();
+
+        Console.WriteLine("تم حفظ الصلاحيات بنجاح");
+    }
+}
+

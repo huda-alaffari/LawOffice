@@ -1,0 +1,88 @@
+﻿@page "/cases/new"
+@inject NavigationManager NavigationManager
+
+<div class="min-h-screen bg-gray-50 py-8 px-6">
+
+    <div class="max-w-2xl mx-auto bg-white rounded-2xl shadow-md p-8">
+        <h1 class="text-2xl font-bold text-gray-800 mb-6 text-center">➕ إضافة قضية جديدة</h1>
+
+        <EditForm Model="@newCase" OnValidSubmit="HandleValidSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                <div>
+                    <label class="block text-gray-700 mb-1">رقم القضية</label>
+                    <InputText @bind-Value="newCase.CaseNumber" class="w-full border rounded-md px-3 py-2" />
+                </div>
+
+                <div>
+                    <label class="block text-gray-700 mb-1">اسم العميل</label>
+                    <InputText @bind-Value="newCase.ClientName" class="w-full border rounded-md px-3 py-2" />
+                </div>
+
+                <div>
+                    <label class="block text-gray-700 mb-1">المحكمة</label>
+                    <InputSelect @bind-Value="newCase.Court" class="w-full border rounded-md px-3 py-2">
+                        <option value="">اختر المحكمة</option>
+                        <option>المحكمة العليا</option>
+                        <option>المحكمة التجارية</option>
+                        <option>المحكمة الجزائية</option>
+                    </InputSelect>
+                </div>
+
+                <div>
+                    <label class="block text-gray-700 mb-1">المحامي المسؤول</label>
+                    <InputText @bind-Value="newCase.Lawyer" class="w-full border rounded-md px-3 py-2" />
+                </div>
+
+                <div>
+                    <label class="block text-gray-700 mb-1">الحالة</label>
+                    <InputSelect @bind-Value="newCase.Status" class="w-full border rounded-md px-3 py-2">
+                        <option value="">اختر الحالة</option>
+                        <option>جارية</option>
+                        <option>محجوزة للحكم</option>
+                        <option>منتهية</option>
+                    </InputSelect>
+                </div>
+
+                <div>
+                    <label class="block text-gray-700 mb-1">تاريخ الجلسة القادمة</label>
+                    <InputDate @bind-Value="newCase.NextSessionDate" class="w-full border rounded-md px-3 py-2" />
+                </div>
+            </div>
+
+            <div class="flex justify-between mt-8">
+                <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition">
+                    حفظ
+                </button>
+                <button type="button" class="bg-gray-200 text-gray-800 px-6 py-2 rounded-md hover:bg-gray-300 transition"
+                        @onclick="@(() => NavigationManager.NavigateTo("/cases"))">
+                    إلغاء
+                </button>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private CaseItem newCase = new();
+
+    private void HandleValidSubmit()
+    {
+        // تخزين البيانات مؤقتاً (في تطبيق فعلي: أضف قاعدة بيانات أو State)
+        Console.WriteLine($"تمت إضافة القضية {newCase.CaseNumber}");
+        NavigationManager.NavigateTo("/cases");
+    }
+
+    public class CaseItem
+    {
+        public string? CaseNumber { get; set; }
+        public string? ClientName { get; set; }
+        public string? Court { get; set; }
+        public string? Lawyer { get; set; }
+        public string? Status { get; set; }
+        public DateTime NextSessionDate { get; set; } = DateTime.Now.AddDays(7);
+    }
+}

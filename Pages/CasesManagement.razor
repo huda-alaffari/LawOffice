@@ -1,0 +1,129 @@
+﻿@page "/cases"
+@using System.Globalization
+@attribute [Authorize(Policy = "القضايا")]
+
+<div class="min-h-screen bg-gray-50 p-6">
+
+    <!-- العنوان و شريط الأدوات -->
+    <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+        <h1 class="text-3xl font-bold text-gray-800">إدارة القضايا</h1>
+
+        <div class="flex gap-2">
+            <input @bind="SearchTerm" placeholder="ابحث عن قضية..." class="border rounded-md px-3 py-2 w-60" />
+            <select @bind="SelectedStatus" class="border rounded-md px-2 py-2">
+                <option value="">كل الحالات</option>
+                <option>جارية</option>
+                <option>محجوزة للحكم</option>
+                <option>منتهية</option>
+            </select>
+            <select @bind="SelectedCourt" class="border rounded-md px-2 py-2">
+                <option value="">كل المحاكم</option>
+                <option>المحكمة العليا</option>
+                <option>المحكمة التجارية</option>
+                <option>المحكمة الجزائية</option>
+            </select>
+            <button @onclick="AddNewCase" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                + إضافة قضية
+            </button>
+        </div>
+    </div>
+
+    <!-- الجدول -->
+    <div class="overflow-x-auto bg-white rounded-lg shadow">
+        <table class="min-w-full text-right text-gray-800">
+            <thead class="bg-gray-100 text-gray-700">
+                <tr>
+                    <th class="px-4 py-2">الرقم</th>
+                    <th class="px-4 py-2">العميل</th>
+                    <th class="px-4 py-2">المحكمة</th>
+                    <th class="px-4 py-2">المحامي المسؤول</th>
+                    <th class="px-4 py-2">الحالة</th>
+                    <th class="px-4 py-2">تاريخ الجلسة القادمة</th>
+                    <th class="px-4 py-2 text-center">إجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var c in FilteredCases)
+                {
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="px-4 py-2 font-medium">@c.CaseNumber</td>
+                        <td class="px-4 py-2">@c.ClientName</td>
+                        <td class="px-4 py-2">@c.Court</td>
+                        <td class="px-4 py-2">@c.Lawyer</td>
+                        <td class="px-4 py-2">
+                            <span class="@GetStatusClass(c.Status) px-2 py-1 rounded text-sm">@c.Status</span>
+                        </td>
+                        <td class="px-4 py-2">@c.NextSessionDate.ToString("d MMM yyyy", CultureInfo.GetCultureInfo("ar-SA"))</td>
+                        <td class="px-4 py-2 text-center space-x-1">
+                            <button class="text-blue-600 hover:underline" @onclick="() => ViewCase(c.Id)">عرض</button>
+                            <button class="text-green-600 hover:underline" @onclick="() => EditCase(c.Id)">تعديل</button>
+                            <button class="text-red-600 hover:underline" @onclick="() => DeleteCase(c.Id)">حذف</button>
+                        </td>
+                    </tr>
+                }
+
+                @if (!FilteredCases.Any())
+                {
+                    <tr>
+                        <td colspan="7" class="text-center text-gray-500 py-6">لا توجد قضايا مطابقة للبحث</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    private string SearchTerm = string.Empty;
+    private string SelectedStatus = string.Empty;
+    private string SelectedCourt = string.Empty;
+
+    private List<CaseItem> AllCases = new()
+    {
+        new CaseItem(1, "128/2025", "أحمد الشمري", "المحكمة التجارية", "المحامي سالم البلوشي", "جارية", new DateTime(2025, 11, 5)),
+        new CaseItem(2, "221/2025", "شركة الروابي", "المحكمة العليا", "المحامية منى السعدي", "محجوزة للحكم", new DateTime(2025, 11, 8)),
+        new CaseItem(3, "134/2025", "فهد العامري", "المحكمة الجزائية", "المحامي راشد الحارثي", "منتهية", new DateTime(2025, 10, 20))
+    };
+
+    private IEnumerable<CaseItem> FilteredCases =>
+        AllCases.Where(c =>
+            (string.IsNullOrWhiteSpace(SearchTerm) || c.CaseNumber.Contains(SearchTerm) || c.ClientName.Contains(SearchTerm)) &&
+            (string.IsNullOrWhiteSpace(SelectedStatus) || c.Status == SelectedStatus) &&
+            (string.IsNullOrWhiteSpace(SelectedCourt) || c.Court == SelectedCourt)
+        );
+
+    [Inject] private NavigationManager NavigationManager { get; set; } = default!;
+
+    private void AddNewCase()
+    {
+        NavigationManager.NavigateTo("/cases/new");
+    }
+
+    private void ViewCase(int id)
+    {
+        Console.WriteLine($"عرض تفاصيل القضية {id}");
+        // NavigationManager.NavigateTo($"/cases/details/{id}");
+    }
+
+    private void EditCase(int id)
+    {
+        Console.WriteLine($"تعديل القضية {id}");
+        // NavigationManager.NavigateTo($"/cases/edit/{id}");
+    }
+
+    private void DeleteCase(int id)
+    {
+        AllCases.RemoveAll(c => c.Id == id);
+    }
+
+    private string GetStatusClass(string status) =>
+        status switch
+        {
+            "جارية" => "bg-blue-100 text-blue-800",
+            "محجوزة للحكم" => "bg-yellow-100 text-yellow-800",
+            "منتهية" => "bg-green-100 text-green-800",
+            _ => "bg-gray-100 text-gray-700"
+        };
+
+    private record CaseItem(int Id, string CaseNumber, string ClientName, string Court, string Lawyer, string Status, DateTime NextSessionDate);
+}

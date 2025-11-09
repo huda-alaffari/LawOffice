@@ -1,0 +1,165 @@
+﻿@page "/"
+@using System.Security.Cryptography
+@using System.Text
+@using Microsoft.Data.SqlClient
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+
+<div class="container my-5" dir="rtl" style="font-family: 'Cairo', sans-serif;">
+    <div class="p-5 rounded-4 shadow"
+         style="background-color:#f5f0e8; border:1px solid #d9c7aa; max-width: 500px; margin:auto;">
+        <AuthorizeView>
+            <Authorized>
+                <!-- المستخدم مسجل دخول -->
+                <div class="text-center">
+                    <h3 class="fw-bold mb-3" style="color:#4b2e0f;">مرحباً بك!</h3>
+                    <p>لقد تم تسجيل الدخول بالفعل.</p>
+                    <button class="btn fw-bold mt-3" style="background-color:#4b2e0f; color:#f5f0e8;"
+                            @onclick='() => Navigation.NavigateTo("/Dashboard")'>
+                        الانتقال إلى لوحة التحكم
+                    </button>
+                </div>
+            </Authorized>
+
+            <NotAuthorized Context="unauth">
+                <!-- المستخدم غير مسجل دخول -->
+                <h3 class="text-center mb-4 fw-bold" style="color:#4b2e0f;">تسجيل الدخول</h3>
+
+                <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+
+                    <!-- البريد الإلكتروني -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold" style="color:#3b2b1a;">
+                            البريد الإلكتروني <span style="color:red;">*</span>
+                        </label>
+                        <input type="email" class="form-control" placeholder="example@email.com"
+                               style="border-color:#d8b98b; background-color:#fffaf3;"
+                               @bind="loginModel.Email" />
+                        @if (showErrors && string.IsNullOrEmpty(loginModel.Email))
+                        {
+                            <div class="text-danger mt-1">الرجاء إدخال البريد الإلكتروني</div>
+                        }
+                    </div>
+
+                    <!-- كلمة المرور -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold" style="color:#3b2b1a;">
+                            كلمة المرور <span style="color:red;">*</span>
+                        </label>
+                        <input type="password" class="form-control" placeholder="••••••••"
+                               style="border-color:#d8b98b; background-color:#fffaf3;"
+                               @bind="loginModel.Password" />
+                        @if (showErrors && string.IsNullOrEmpty(loginModel.Password))
+                        {
+                            <div class="text-danger mt-1">الرجاء إدخال كلمة المرور</div>
+                        }
+                    </div>
+
+                    <!-- الأزرار -->
+                    <div class="text-center mt-4">
+                        @if (showErrors && !string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div style="color:red; font-weight:bold;">@errorMessage</div>
+                        }
+
+                        <button type="button" class="btn px-4 py-2 fw-bold"
+                                style="background-color:#4b2e0f; color:#f5f0e8;"
+                                @onclick="ValidateForm">
+                            تسجيل الدخول
+                        </button>
+
+                        <button type="button" class="btn px-4 py-2 fw-bold ms-2"
+                                style="background-color:#4b2e0f; color:#f5f0e8;"
+                                @onclick='() => Navigation.NavigateTo("/register")'>
+                            تسجيل مستخدم جديد
+                        </button>
+                    </div>
+                </EditForm>
+
+                @if (loginSuccess)
+                {
+                    <div class="alert alert-success text-center mt-4">
+                        ✅ تم تسجيل الدخول بنجاح!
+                    </div>
+                }
+            </NotAuthorized>
+        </AuthorizeView>
+
+    </div>
+</div>
+
+@code {
+    private LoginModel loginModel = new();
+    private bool loginSuccess = false;
+    private bool showErrors = false;
+    private string errorMessage = "";
+
+    private void ValidateForm()
+    {
+        showErrors = true;
+        if (CanSubmit)
+        {
+            HandleLogin();
+        }
+    }
+
+    private void HandleLogin()
+    {
+        string enteredEmail = loginModel.Email!;
+        string enteredPasswordHash = HashPassword(loginModel.Password!);
+
+        string connectionString = "Data Source=LAPTOP-9VFHMEKR\\SQLEXPRESS;Initial Catalog=CaseSystemManagement;Integrated Security=True;TrustServerCertificate=True;";
+        string query = "SELECT COUNT(*) FROM user_login WHERE email=@Email AND password_hash=@Hash";
+
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        using (SqlCommand cmd = new SqlCommand(query, conn))
+        {
+            cmd.Parameters.AddWithValue("@Email", enteredEmail);
+            cmd.Parameters.AddWithValue("@Hash", enteredPasswordHash);
+
+            conn.Open();
+            int count = (int)cmd.ExecuteScalar();
+
+            if (count == 1)
+            {
+                loginSuccess = true;
+                showErrors = false;
+                Navigation.NavigateTo("/Dashboard");
+            }
+            else
+            {
+                loginSuccess = false;
+                showErrors = true;
+                errorMessage = "البريد الإلكتروني أو كلمة المرور غير صحيحة";
+            }
+        }
+    }
+
+    public static string HashPassword(string password)
+    {
+        using (SHA256 sha256 = SHA256.Create())
+        {
+            byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+            StringBuilder builder = new StringBuilder();
+            foreach (byte b in bytes)
+            {
+                builder.Append(b.ToString("x2"));
+            }
+            return builder.ToString();
+        }
+    }
+
+    private bool CanSubmit =>
+        !string.IsNullOrEmpty(loginModel.Email) &&
+        !string.IsNullOrEmpty(loginModel.Password);
+
+    public class LoginModel
+    {
+        public string? Email { get; set; }
+        public string? Password { get; set; }
+    }
+}

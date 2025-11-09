@@ -1,0 +1,120 @@
+﻿@page "/register-client"
+@using LowOffice.Data
+@inject ApplicationDbContext Db
+@inject NavigationManager Nav
+@inject IWebHostEnvironment Env
+
+<div class="container my-5" dir="rtl" style="font-family: 'Cairo', sans-serif;">
+    <div class="p-5 rounded-4 shadow"
+         style="background-color:#f5f0e8; border:1px solid #d9c7aa; max-width: 700px; margin:auto;">
+
+        <h3 class="text-center mb-4" style="color:#4b2e0f; font-weight:700;">
+            تسجيل عميل جديد
+        </h3>
+
+        <EditForm Model="@client" OnValidSubmit="SaveClient">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger mb-3" />
+
+            <div class="mb-3">
+                <label class="form-label fw-bold" style="color:#4b2e0f;">الاسم الكامل</label>
+                <InputText class="form-control" @bind-Value="client.FullName" />
+                <ValidationMessage For="@(() => client.FullName)" class="text-danger" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold" style="color:#4b2e0f;">الرقم المدني</label>
+                <InputText class="form-control" @bind-Value="client.NationalID" />
+                <ValidationMessage For="@(() => client.NationalID)" class="text-danger" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold" style="color:#4b2e0f;">رقم الهاتف</label>
+                <InputText class="form-control" @bind-Value="client.Phone" />
+                <ValidationMessage For="@(() => client.Phone)" class="text-danger" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold" style="color:#4b2e0f;">البريد الإلكتروني</label>
+                <InputText class="form-control" @bind-Value="client.Email" type="email" />
+                <ValidationMessage For="@(() => client.Email)" class="text-danger" />
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label fw-bold" style="color:#4b2e0f;">العنوان</label>
+                <InputTextArea class="form-control" @bind-Value="client.Address" />
+                <ValidationMessage For="@(() => client.Address)" class="text-danger" />
+            </div>
+            <div class="mb-4">
+                <label class="form-label fw-bold" style="color:#4b2e0f;">📎 إرفاق مستند التوكيل</label>
+                <InputFile OnChange="HandleFileSelected" />
+                @if (!string.IsNullOrEmpty(uploadedFileName))
+                {
+                    <div class="mt-2 text-success fw-bold">تم رفع: @uploadedFileName ✅</div>
+                }
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <button type="submit" class="btn fw-bold"
+                        style="background-color:#4b2e0f; color:#fff;">
+                    💾 حفظ
+                </button>
+
+                <button type="button" class="btn fw-bold"
+                        style="background-color:#d9c7aa; color:#4b2e0f;"
+                        @onclick="GoHome">
+                    🏠 العودة للرئيسية
+                </button>
+            </div>
+
+        </EditForm>
+
+        @if (showMessage)
+        {
+            <div class="alert alert-success text-center mt-3" style="color:#2f1d0c;">
+                تم حفظ بيانات العميل بنجاح ✅
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+
+    private Client client = new();
+    private bool showMessage = false;
+
+    private async Task SaveClient()
+    {
+        Db.Clients.Add(client);
+        await Db.SaveChangesAsync();
+        showMessage = true;
+        client = new(); // إعادة تعيين النموذج
+        StateHasChanged();
+    }
+
+    private void GoHome()
+    {
+        Nav.NavigateTo("/");
+    }
+
+    private IBrowserFile? selectedFile;
+    private string? uploadedFileName;
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        var selectedFile = e.File;
+        var uploadsPath = Path.Combine(Env.WebRootPath, "uploads");
+
+        if (!Directory.Exists(uploadsPath))
+            Directory.CreateDirectory(uploadsPath);
+
+        uploadedFileName = $"{Guid.NewGuid()}_{selectedFile.Name}";
+        var filePath = Path.Combine(uploadsPath, uploadedFileName);
+
+        using var stream = selectedFile.OpenReadStream(10_000_000); // 10MB
+        using var fileStream = File.Create(filePath);
+        await stream.CopyToAsync(fileStream);
+
+        client.DocumentFileName = uploadedFileName;
+    }
+}

@@ -1,0 +1,35 @@
+﻿@page "/pendinglawsuit"
+
+@using Microsoft.AspNetCore.Components.Routing
+
+<div class="container text-center mt-5 pendinglawsuit">
+    <h2 class="mb-4">قيد الدعاوى</h2>
+    <div class="row justify-content-center">
+        <div class="col-md-3 mb-4">
+            <NavLink class="card case-card" href="Primary" Match="NavLinkMatch.All">
+                <div class="card-body">
+                    <i class="fas fa-book fa-2x mb-2"></i>
+                    <h5 class="card-title">ابتدائي</h5>
+                </div>
+            </NavLink>
+        </div>
+        <div class="col-md-3 mb-4">
+            <NavLink class="card case-card" href="Appeal" Match="NavLinkMatch.All">
+                <div class="card-body">
+                    <i class="fas fa-gavel fa-2x mb-2"></i>
+                    <h5 class="card-title">استئناف</h5>
+                </div>
+            </NavLink>
+        </div>
+        <div class="col-md-3 mb-4">
+            <NavLink class="card case-card" href="supreme" Match="NavLinkMatch.All">
+                <div class="card-body">
+                    <i class="fas fa-balance-scale fa-2x mb-2"></i>
+                    <h5 class="card-title">العليا</h5>
+                </div>
+            </NavLink>
+        </div>
+        
+        
+    </div>
+</div>

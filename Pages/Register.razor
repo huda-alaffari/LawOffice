@@ -1,0 +1,219 @@
+﻿@page "/register"
+@using System.Security.Cryptography
+@using System.Text
+@using Microsoft.Data.SqlClient
+@using System.ComponentModel.DataAnnotations
+
+<div class="container my-5" dir="rtl" style="font-family: 'Cairo', sans-serif;">
+    <div class="p-5 rounded-4 shadow"
+         style="background-color:#f5f0e8; border:1px solid #d9c7aa; max-width: 500px; margin:auto;">
+        <h3 class="text-center mb-4 fw-bold" style="color:#4b2e0f;">تسجيل مستخدم جديد</h3>
+
+        <EditForm Model="@registerModel" OnValidSubmit="HandleRegister">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <!-- البريد الإلكتروني -->
+            <div class="mb-3">
+                <label class="form-label fw-bold" style="color:#3b2b1a;">البريد الإلكتروني <span style="color:red;">*</span></label>
+                <input type="email" class="form-control" placeholder="example@email.com"
+                       style="border-color:#d8b98b; background-color:#fffaf3;"
+                       @bind="registerModel.Email" />
+                @if (showErrors && string.IsNullOrEmpty(registerModel.Email))
+                {
+                    <div class="text-danger mt-1">الرجاء إدخال البريد الإلكتروني</div>
+                }
+            </div>
+            <!-- الاسم بالعربي -->
+            <div class="mb-3">
+                <label class="form-label fw-bold" style="color:#3b2b1a;">الاسم باللغة العربية <span style="color:red;">*</span></label>
+
+                <input type="text" class="form-control"
+                       style="border-color:#d8b98b; background-color:#fffaf3;"
+                       @bind-value="registerModel.Name"
+                       @bind-value:event="oninput"
+                       @bind-value:after="PreventNonArabic" />
+
+                @if (!string.IsNullOrEmpty(arabicWarning))
+                {
+                    <div class="text-danger mt-1">@arabicWarning</div>
+                }
+
+
+            </div>
+
+
+            <!-- كلمة المرور -->
+            <div class="mb-3">
+                <label class="form-label fw-bold" style="color:#3b2b1a;">كلمة المرور <span style="color:red;">*</span></label>
+                <input type="password" class="form-control" placeholder="••••••••"
+                       style="border-color:#d8b98b; background-color:#fffaf3;"
+                       @bind="registerModel.Password" />
+                @if (showErrors && string.IsNullOrEmpty(registerModel.Password))
+                {
+                    <div class="text-danger mt-1">الرجاء إدخال كلمة المرور</div>
+                }
+            </div>
+
+            <!-- تأكيد كلمة المرور -->
+            <div class="mb-3">
+                <label class="form-label fw-bold" style="color:#3b2b1a;">تأكيد كلمة المرور <span style="color:red;">*</span></label>
+                <input type="password" class="form-control" placeholder="••••••••"
+                       style="border-color:#d8b98b; background-color:#fffaf3;"
+                       @bind="registerModel.ConfirmPassword" />
+                @if (showErrors && registerModel.Password != registerModel.ConfirmPassword)
+                {
+                    <div class="text-danger mt-1">كلمتا المرور غير متطابقتين</div>
+                }
+            </div>
+
+            <!-- الدور -->
+            <div class="mb-3">
+                <label class="form-label fw-bold" style="color:#3b2b1a;">الدور / الصلاحية</label>
+                <select class="form-select" style="border-color:#d8b98b; background-color:#fffaf3;"
+                        @bind="registerModel.Role">
+                    <option value="">اختر الصلاحية</option>
+                    <option value="Admin">مدير</option>
+                    <option value="Lawyer">محامي</option>
+                    <option value="Assistant">مساعد</option>
+                </select>
+            </div>
+
+            <!-- الأزرار -->
+            <div class="text-center mt-4">
+                @if (showErrors && !string.IsNullOrEmpty(errorMessage))
+                {
+                    <div style="color:red; font-weight:bold;">@errorMessage</div>
+                }
+
+                <button type="submit" class="btn px-4 py-2 fw-bold"
+                        style="background-color:#4b2e0f; color:#f5f0e8; border:none;">
+                    تسجيل المستخدم
+                </button>
+
+                <button type="button" class="btn px-4 py-2 fw-bold ms-2"
+                        style="background-color:#4b2e0f; color:#f5f0e8; border:none;"
+                        @onclick='()=> Navigation.NavigateTo("/")'>
+                    العودة لتسجيل الدخول
+                </button>
+            </div>
+        </EditForm>
+
+        <!-- رسالة النجاح -->
+        @if (registerSuccess)
+        {
+            <div class="alert alert-success text-center mt-4">
+                ✅ تم التسجيل بنجاح! يمكنك الآن تسجيل الدخول.
+            </div>
+        }
+    </div>
+</div>
+
+@inject NavigationManager Navigation
+
+@code {
+    private RegisterModel registerModel = new();
+    private bool showErrors = false;
+    private bool registerSuccess = false;
+    private string errorMessage = "";
+    private string arabicWarning = "";
+
+    private void HandleRegister()
+    {
+        showErrors = true;
+
+        if (string.IsNullOrEmpty(registerModel.Email) ||
+            string.IsNullOrEmpty(registerModel.Password) ||
+            registerModel.Password != registerModel.ConfirmPassword)
+        {
+            errorMessage = "الرجاء التأكد من صحة البيانات";
+            return;
+        }
+
+        if (IsEmailExists(registerModel.Email))
+        {
+            errorMessage = "هذا البريد الإلكتروني مسجل مسبقاً";
+            return;
+        }
+
+        string hashedPassword = HashPassword(registerModel.Password);
+
+        string connectionString = "Data Source=LAPTOP-9VFHMEKR\\SQLEXPRESS;Initial Catalog=CaseSystemManagement;Integrated Security=True;TrustServerCertificate=True;";
+        string query = "INSERT INTO user_login (email, password_plain, password_hash, role, Name) VALUES (@Email, @Plain, @Hash, @Role,@name)";
+
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        using (SqlCommand cmd = new SqlCommand(query, conn))
+        {
+            cmd.Parameters.AddWithValue("@Email", registerModel.Email);
+            cmd.Parameters.AddWithValue("@Plain", registerModel.Password);
+            cmd.Parameters.AddWithValue("@Hash", hashedPassword);
+            cmd.Parameters.AddWithValue("@Role", registerModel.Role ?? "Assistant");
+            cmd.Parameters.AddWithValue("@Name", registerModel.Name);
+
+            conn.Open();
+            cmd.ExecuteNonQuery();
+        }
+
+        registerSuccess = true;
+
+        // إعادة التوجيه بعد التسجيل بنجاح
+        Task.Delay(2000);
+        Navigation.NavigateTo("/");
+    }
+
+    private bool IsEmailExists(string email)
+    {
+        string connectionString = "Data Source=LAPTOP-9VFHMEKR\\SQLEXPRESS;Initial Catalog=CaseSystemManagement;Integrated Security=True;TrustServerCertificate=True;";
+        string query = "SELECT COUNT(*) FROM user_login WHERE email=@Email";
+
+        using (SqlConnection conn = new SqlConnection(connectionString))
+        using (SqlCommand cmd = new SqlCommand(query, conn))
+        {
+            cmd.Parameters.AddWithValue("@Email", email);
+            conn.Open();
+            int count = (int)cmd.ExecuteScalar();
+            return count > 0;
+        }
+    }
+
+    public static string HashPassword(string password)
+    {
+        using (SHA256 sha256 = SHA256.Create())
+        {
+            byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+            StringBuilder builder = new StringBuilder();
+            foreach (byte b in bytes)
+            {
+                builder.Append(b.ToString("x2"));
+            }
+            return builder.ToString();
+        }
+    }
+
+    public class RegisterModel
+    {
+        public string? Email { get; set; }
+        [RegularExpression("^[\u0600-\u06FF ]+$", ErrorMessage = "يجب إدخال الاسم باللغة العربية فقط")]
+        public string? Name { get; set; }
+        public string? Password { get; set; }
+        public string? ConfirmPassword { get; set; }
+        public string? Role { get; set; }
+    }
+
+    private void PreventNonArabic()
+    {
+        if (!string.IsNullOrEmpty(registerModel.Name) &&
+            !System.Text.RegularExpressions.Regex.IsMatch(registerModel.Name, @"^[\u0600-\u06FF ]+$"))
+        {
+            arabicWarning = "يسمح فقط بإدخال الحروف العربية";
+            registerModel.Name = System.Text.RegularExpressions.Regex.Replace(registerModel.Name, @"[^ء-ي ]", "");
+        }
+        else
+        {
+            arabicWarning = "";
+        }
+    }
+
+
+}
+

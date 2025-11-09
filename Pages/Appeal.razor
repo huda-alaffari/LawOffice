@@ -1,0 +1,149 @@
+﻿@page "/appeal"
+@using System.Collections.Generic
+
+<div class="container my-5" dir="rtl">
+    <div class="card shadow p-4" style="max-width: 600px; margin:auto; border-radius: 12px;">
+        <h3 class="text-center mb-4 text-primary fw-bold">بيانات قيد - إستئناف</h3>
+
+        <EditForm Model="@caseForm">
+            <!-- اختيار المحافظة -->
+            <div class="mb-3">
+                <label class="form-label fw-bold">
+                    المحافظة <span style="color:red;">*</span>
+                </label>
+                <select class="form-select" @onchange="GovernorateChanged">
+                    <option value="">-- اختر المحافظة --</option>
+                    @foreach (var gov in governorates.Keys)
+                    {
+                        <option @key="gov" value="@gov">@gov</option>
+                    }
+                </select>
+                @if (showErrors && string.IsNullOrEmpty(caseForm.Governorate))
+                {
+                    <div class="text-danger mt-1">الرجاء اختيار المحافظة</div>
+                }
+            </div>
+
+            <!-- اختيار المحكمة -->
+            <div class="mb-3">
+                <label class="form-label fw-bold">
+                    المحكمة <span style="color:red;">*</span>
+                </label>
+                <select class="form-select" @onchange="CourtChanged" disabled="@(!availableCourts.Any())">
+                    <option value="">-- اختر المحكمة --</option>
+                    @foreach (var court in availableCourts)
+                    {
+                        <option @key="court" value="@court">@court</option>
+                    }
+                </select>
+                @if (showErrors && string.IsNullOrEmpty(caseForm.Court))
+                {
+                    <div class="text-danger mt-1">الرجاء اختيار المحكمة</div>
+                }
+            </div>
+
+            <!-- اختيار نوع الدعوى -->
+            <div class="mb-3">
+                <label class="form-label fw-bold">
+                    نوع الدعوى <span style="color:red;">*</span>
+                </label>
+                <select class="form-select" @bind="caseForm.CaseType" disabled="@(!availableCaseTypes.Any())">
+                    <option value="">-- اختر نوع الدعوى --</option>
+                    @foreach (var type in availableCaseTypes)
+                    {
+                        <option @key="type" value="@type">@type</option>
+                    }
+                </select>
+                @if (showErrors && string.IsNullOrEmpty(caseForm.CaseType))
+                {
+                    <div class="text-danger mt-1">الرجاء اختيار نوع الدعوى</div>
+                }
+            </div>
+
+            <!-- زر التأكيد -->
+            <div class="text-center mt-4">
+                <button type="button" class="btn btn-primary px-4" @onclick="ValidateForm">تأكيد البيانات</button>
+            </div>
+        </EditForm>
+
+        @if (submitted)
+        {
+            <div class="alert alert-success mt-4 text-center">
+                ✅ تم حفظ بياناتك بنجاح!
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private CaseForm caseForm = new();
+    private bool submitted = false;
+    private bool showErrors = false;
+
+    private Dictionary<string, Dictionary<string, List<string>>> governorates = new()
+    {
+        { "محافظة مسقط", new() { { "محكمة استئناف مسقط", new() { "دعوى استئناف", "استئناف استشكال", "أوامر" } } } },
+        { "محافظة البريمي", new() { { "محكمة استئناف البريمي", new() { "دعوى استئناف", "التماس في حكم", "طلبات" } } } },
+        { "محافظة ظفار", new() { { "محكمة استئناف صلالة", new() { "دعوى استئناف", "تصحيح حكم", "تظلمات" } } } }
+    };
+
+    private List<string> availableCourts = new();
+    private List<string> availableCaseTypes = new();
+
+    private void GovernorateChanged(ChangeEventArgs e)
+    {
+        caseForm.Governorate = e.Value?.ToString();
+        availableCourts.Clear();
+        availableCaseTypes.Clear();
+        caseForm.Court = null;
+        caseForm.CaseType = null;
+
+        if (!string.IsNullOrEmpty(caseForm.Governorate) &&
+            governorates.TryGetValue(caseForm.Governorate, out var courts))
+        {
+            availableCourts = courts.Keys.ToList();
+        }
+    }
+
+    private void CourtChanged(ChangeEventArgs e)
+    {
+        caseForm.Court = e.Value?.ToString();
+        availableCaseTypes.Clear();
+        caseForm.CaseType = null;
+
+        if (!string.IsNullOrEmpty(caseForm.Governorate) &&
+            !string.IsNullOrEmpty(caseForm.Court) &&
+            governorates.TryGetValue(caseForm.Governorate, out var courts) &&
+            courts.TryGetValue(caseForm.Court, out var types))
+        {
+            availableCaseTypes = types.ToList();
+        }
+    }
+
+    private void ValidateForm()
+    {
+        showErrors = true;
+        if (CanSubmit)
+        {
+            HandleSubmit();
+        }
+    }
+
+    private void HandleSubmit()
+    {
+        submitted = true;
+        showErrors = false;
+    }
+
+    private bool CanSubmit =>
+        !string.IsNullOrEmpty(caseForm.Governorate) &&
+        !string.IsNullOrEmpty(caseForm.Court) &&
+        !string.IsNullOrEmpty(caseForm.CaseType);
+
+    public class CaseForm
+    {
+        public string? Governorate { get; set; }
+        public string? Court { get; set; }
+        public string? CaseType { get; set; }
+    }
+}

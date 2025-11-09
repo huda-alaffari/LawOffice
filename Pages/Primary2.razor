@@ -1,0 +1,169 @@
+﻿@page "/primary2"
+@inject NavigationManager Nav
+
+<div class="container my-5" dir="rtl">
+    <div class="card shadow p-4" style="max-width: 700px; margin:auto; border-radius: 12px;">
+        <h3 class="text-center mb-4 text-primary fw-bold">بيانات القيد- ابتدائي</h3>
+
+        <EditForm Model="@supremeForm" OnValidSubmit="HandleSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <!-- صنف الدعوى -->
+            <div class="mb-3">
+                <label class="form-label fw-bold">
+                    صنف الدعوى <span style="color:red;">*</span>
+                </label>
+                <select class="form-select" @bind="supremeForm.Category" @bind:after="OnCategoryChanged">
+                    <option value="">-- اختر صنف الدعوى --</option>
+                    @foreach (var category in caseCategories.Keys)
+                    {
+                        <option value="@category">@category</option>
+                    }
+                </select>
+                @if (showErrors && string.IsNullOrEmpty(supremeForm.Category))
+                {
+                    <div class="text-danger mt-1">الرجاء اختيار صنف الدعوى</div>
+                }
+            </div>
+
+            <!-- الطلب الرئيسي -->
+            <div class="mb-3">
+                <label class="form-label fw-bold">
+                    الطلب الرئيسي <span style="color:red;">*</span>
+                </label>
+                <select class="form-select" @bind="supremeForm.MainRequest" disabled="@(!availableRequests.Any())">
+                    <option value="">-- اختر الطلب الرئيسي --</option>
+                    @foreach (var req in availableRequests)
+                    {
+                        <option value="@req">@req</option>
+                    }
+                </select>
+                @if (showErrors && string.IsNullOrEmpty(supremeForm.MainRequest))
+                {
+                    <div class="text-danger mt-1">الرجاء اختيار الطلب الرئيسي</div>
+                }
+            </div>
+
+            <!-- الموضوع -->
+            <div class="mb-3">
+                <label class="form-label fw-bold">
+                    الموضوع <span style="color:red;">*</span>
+                </label>
+                <textarea class="form-control" rows="3" @bind="supremeForm.Subject" placeholder="اكتب هنا موضوع الدعوى..."></textarea>
+                @if (showErrors && string.IsNullOrEmpty(supremeForm.Subject))
+                {
+                    <div class="text-danger mt-1">الرجاء إدخال موضوع الدعوى</div>
+                }
+            </div>
+
+            <!-- الطلبات -->
+            <div class="mb-3">
+                <label class="form-label fw-bold">
+                    الطلبات <span style="color:red;">*</span>
+                </label>
+                <textarea class="form-control" rows="3" @bind="supremeForm.Requests" placeholder="اكتب هنا الطلبات المطلوبة..."></textarea>
+                @if (showErrors && string.IsNullOrEmpty(supremeForm.Requests))
+                {
+                    <div class="text-danger mt-1">الرجاء إدخال الطلبات المطلوبة</div>
+                }
+            </div>
+
+            <!-- الأزرار -->
+            <div class="d-flex justify-content-between mt-4">
+                <button type="button" class="btn btn-secondary" @onclick="GoBack">السابق</button>
+                <button type="button" class="btn btn-warning text-dark" @onclick="SaveDraft">💾 مسودة</button>
+                <button type="button" class="btn btn-primary" @onclick="ValidateForm">التالي</button>
+            </div>
+        </EditForm>
+
+        <!-- الرسائل -->
+        @if (savedAsDraft)
+        {
+            <div class="alert alert-info text-center mt-3">
+                💾 تم حفظ المسودة بنجاح!
+            </div>
+        }
+
+        @if (submitted)
+        {
+            <div class="alert alert-success text-center mt-3">
+                ✅ تم حفظ البيانات والانتقال للصفحة التالية!
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private SupremeForm supremeForm = new();
+    private bool savedAsDraft = false;
+    private bool submitted = false;
+    private bool showErrors = false;
+
+    // 🔹 أصناف الدعوى والطلبات
+    private Dictionary<string, List<string>> caseCategories = new()
+    {
+        { "(8200) دعاوى", new List<string> { "(8201) مخاصمة القضاة وأعضاء الادعاء العام", "(8203) دعوى العضل" } },
+        { "(8300) طلبات", new List<string> { "(8301) طلب إلغاء حكم", "(8302) طلب تفسير حكم" } }
+    };
+
+    private List<string> availableRequests = new();
+
+    private void OnCategoryChanged()
+    {
+        availableRequests.Clear();
+        supremeForm.MainRequest = null;
+
+        if (!string.IsNullOrEmpty(supremeForm.Category) && caseCategories.TryGetValue(supremeForm.Category, out var requests))
+        {
+            availableRequests = requests.ToList();
+        }
+    }
+
+    private void SaveDraft()
+    {
+        savedAsDraft = true;
+        submitted = false;
+        showErrors = false;
+    }
+
+    private void GoBack()
+    {
+        Nav.NavigateTo("/");
+    }
+
+    private void ValidateForm()
+    {
+        showErrors = true;
+
+        if (CanSubmit)
+        {
+            HandleSubmit();
+        }
+    }
+
+    private void HandleSubmit()
+    {
+        submitted = true;
+        savedAsDraft = false;
+        showErrors = false;
+
+        // هنا تقدر تضيف الانتقال للصفحة التالية مثلاً:
+        // Nav.NavigateTo("/next-step");
+    }
+
+    private bool CanSubmit =>
+        !string.IsNullOrEmpty(supremeForm.Category)
+        && !string.IsNullOrEmpty(supremeForm.MainRequest)
+        && !string.IsNullOrEmpty(supremeForm.Subject)
+        && !string.IsNullOrEmpty(supremeForm.Requests);
+
+    public class SupremeForm
+    {
+        public string? Category { get; set; }
+        public string? MainRequest { get; set; }
+        public string? Subject { get; set; }
+        public string? Requests { get; set; }
+    }
+}
+

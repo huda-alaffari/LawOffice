@@ -1,0 +1,17 @@
+﻿<div class="bg-white rounded-lg shadow p-5 flex flex-col justify-between hover:shadow-md transition">
+    <div class="flex justify-between items-center mb-3">
+        <div class="text-lg font-semibold text-gray-800">@Title</div>
+        <span class="@IconColor">
+            @Icon
+        </span>
+    </div>
+    <div class="text-4xl font-bold text-gray-900">@Value</div>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public int Value { get; set; }
+    [Parameter] public string IconColor { get; set; } = "text-gray-500";
+    [Parameter] public RenderFragment? Icon { get; set; }
+}
+

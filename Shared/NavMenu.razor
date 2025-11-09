@@ -1,0 +1,23 @@
+﻿@* NavMenu.razor *@
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container-fluid">
+        <ul class="navbar-nav ms-auto">
+            <!-- 'ms-auto' aligns right for Arabic -->
+            <!-- خدمات الدعاوى -->
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="lawsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    خدمات الدعاوى
+                </a>
+                <ul class="dropdown-menu text-end" aria-labelledby="lawsDropdown">
+                    <li><a class="dropdown-item" href="/laws/list">قائمة الدعاوى</a></li>
+                    <li><a class="dropdown-item" href="/laws/new">قيد الدعوى</a></li>
+                    <li><a class="dropdown-item" href="/laws/draft">مسودة الدعوى</a></li>
+                    <li><a class="dropdown-item" href="/laws/track">متابعة إجراءات القيد</a></li>
+                </ul>
+            </li>
+
+        </ul>
+    </div>
+</nav>
+
+
